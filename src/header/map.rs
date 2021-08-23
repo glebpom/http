@@ -13,7 +13,6 @@ use super::name::{HdrName, HeaderName, InvalidHeaderName};
 
 pub use self::as_header_name::AsHeaderName;
 pub use self::into_header_name::IntoHeaderName;
-use smallvec::SmallVec;
 
 /// A set of HTTP headers
 ///
@@ -47,8 +46,8 @@ pub struct HeaderMap<T = HeaderValue> {
     // Used to mask values to get an index
     mask: Size,
     indices: Box<[Pos]>,
-    entries: SmallVec<[Bucket<T>; 16]>,
-    extra_values: SmallVec<[ExtraValue<T>; 16]>,
+    entries: Vec<Bucket<T>>,
+    extra_values: Vec<ExtraValue<T>>,
     danger: Danger,
 }
 
@@ -105,8 +104,8 @@ pub struct IterMut<'a, T> {
 pub struct IntoIter<T> {
     // If None, pull from `entries`
     next: Option<usize>,
-    entries: smallvec::IntoIter<[Bucket<T>; 16]>,
-    extra_values: SmallVec<[ExtraValue<T>; 16]>,
+    entries: vec::IntoIter<Bucket<T>>,
+    extra_values: Vec<ExtraValue<T>>,
 }
 
 /// An iterator over `HeaderMap` keys.
@@ -140,7 +139,7 @@ pub struct Drain<'a, T> {
     entries: *mut [Bucket<T>],
     // If None, pull from `entries`
     next: Option<usize>,
-    extra_values: *mut SmallVec<[ExtraValue<T>; 16]>,
+    extra_values: *mut Vec<ExtraValue<T>>,
     lt: PhantomData<&'a mut HeaderMap<T>>,
 }
 
@@ -468,8 +467,8 @@ impl<T> HeaderMap<T> {
             HeaderMap {
                 mask: 0,
                 indices: Box::new([]), // as a ZST, this doesn't actually allocate anything
-                entries: SmallVec::new(),
-                extra_values: SmallVec::new(),
+                entries: Vec::new(),
+                extra_values: Vec::new(),
                 danger: Danger::Green,
             }
         } else {
@@ -480,8 +479,8 @@ impl<T> HeaderMap<T> {
             HeaderMap {
                 mask: (raw_cap - 1) as Size,
                 indices: vec![Pos::none(); raw_cap].into_boxed_slice(),
-                entries: SmallVec::with_capacity(raw_cap),
-                extra_values: SmallVec::new(),
+                entries: Vec::with_capacity(raw_cap),
+                extra_values: Vec::new(),
                 danger: Danger::Green,
             }
         }
@@ -646,7 +645,7 @@ impl<T> HeaderMap<T> {
             if self.entries.len() == 0 {
                 self.mask = cap as Size - 1;
                 self.indices = vec![Pos::none(); cap].into_boxed_slice();
-                self.entries = SmallVec::with_capacity(usable_capacity(cap));
+                self.entries = Vec::with_capacity(usable_capacity(cap));
             } else {
                 self.grow(cap);
             }
@@ -1538,7 +1537,7 @@ impl<T> HeaderMap<T> {
                 let new_raw_cap = 8;
                 self.mask = 8 - 1;
                 self.indices = vec![Pos::none(); new_raw_cap].into_boxed_slice();
-                self.entries = SmallVec::with_capacity(usable_capacity(new_raw_cap));
+                self.entries = Vec::with_capacity(usable_capacity(new_raw_cap));
             } else {
                 let raw_cap = self.indices.len();
                 self.grow(raw_cap << 1);
@@ -1595,7 +1594,7 @@ impl<T> HeaderMap<T> {
 #[inline]
 fn remove_extra_value<T>(
     mut raw_links: RawLinks<T>,
-    extra_values: &mut SmallVec<[ExtraValue<T>; 16]>,
+    extra_values: &mut Vec<ExtraValue<T>>,
     idx: usize)
     -> ExtraValue<T>
 {
@@ -1716,7 +1715,7 @@ fn remove_extra_value<T>(
 
 fn drain_all_extra_values<T>(
     raw_links: RawLinks<T>,
-    extra_values: &mut SmallVec<[ExtraValue<T>; 16]>,
+    extra_values: &mut Vec<ExtraValue<T>>,
     mut head: usize)
     -> Vec<T>
 {
@@ -2031,7 +2030,7 @@ fn do_insert_phase_two(indices: &mut [Pos], mut probe: usize, mut old_pos: Pos) 
 fn append_value<T>(
     entry_idx: usize,
     entry: &mut Bucket<T>,
-    extra: &mut SmallVec<[ExtraValue<T>; 16]>,
+    extra: &mut Vec<ExtraValue<T>>,
     value: T,
 ) {
     match entry.links {
