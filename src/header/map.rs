@@ -3236,9 +3236,9 @@ fn hash_elem_using<K: ?Sized>(danger: &Danger, k: &K) -> HashValue
 where
     K: Hash,
 {
-    use fxhash::FxHasher32;
+    // use fxhash::FxHasher32;
     // use fnv::FnvHasher;
-    // use ahash::AHasher;
+    use ahash::AHasher;
 
     const MASK: u64 = (MAX_SIZE as u64) - 1;
 
@@ -3252,8 +3252,8 @@ where
         // Fast hash
         _ => {
             // let mut h = FnvHasher::default();
-            let mut h = FxHasher32::default();
-            // let mut h = AHasher::default();
+            // let mut h = FxHasher32::default();
+            let mut h = AHasher::default();
             k.hash(&mut h);
             h.finish()
         }
