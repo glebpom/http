@@ -24,7 +24,10 @@ edition = "2018"
 [dependencies]
 bytes = "1"
 fnv = "1.0.5"
+ahash = "0.7.4"
 itoa = "0.4.1"
+smallvec = "1.6.1"
+fxhash = "0.2.1"
 
 [dev-dependencies]
 indexmap = "1.0"
