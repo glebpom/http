@@ -37,7 +37,7 @@ serde_json = "1.0"
 doc-comment = "0.3"
 
 [features]
-default = ["fnv"]
+default = ["ahash"]
 
 [[bench]]
 name = "header_map"
